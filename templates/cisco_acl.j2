@@ -1,0 +1,21 @@
+! ============================================================
+! Récapitulatif des ACL - {{ base.nom }} ({{ base.code_site }})
+! Document de référence pour audit / revue de sécurité
+! ============================================================
+!
+! Politique par défaut inter-VLAN : {{ securite.acl_inter_vlan_par_defaut | upper }}
+!
+{% for vlan in plan %}
+! VLAN {{ vlan.id }} - {{ vlan.nom }}
+!   Réseau       : {{ vlan.cidr }} (wildcard {{ vlan.wildcard }})
+!   Passerelle   : {{ vlan.gateway }}
+!   Zone FortiGate associée : {{ vlan.zone_fortigate }}
+!   Plage DHCP   : {{ vlan.dhcp_debut }} - {{ vlan.dhcp_fin }}
+!
+{% endfor %}
+! ------------------------------------------------------------
+! Points de vérification en audit :
+!   - Confirmer qu'aucune ACL ne contient "permit ip any any" en première ligne
+!   - Confirmer que le VLAN GUEST ne peut atteindre aucun autre VLAN interne
+!   - Confirmer que le VLAN IOT est isolé (zone restricted) sans accès sortant large
+! ------------------------------------------------------------

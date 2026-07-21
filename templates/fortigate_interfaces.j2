@@ -1,0 +1,72 @@
+config system interface
+{% for vlan in plan %}
+    edit "VLAN{{ vlan.id }}_{{ vlan.nom }}"
+        set vdom "root"
+        set ip {{ vlan.gateway }} {{ vlan.masque }}
+        set allowaccess ping https ssh
+        set alias "{{ vlan.nom }} - {{ base.nom }}"
+        set role {{ 'lan' if vlan.zone_fortigate == 'trust' else 'dmz' }}
+        set interface "internal"
+        set vlanid {{ vlan.id }}
+    next
+{% endfor %}
+end
+
+config system zone
+{% set zones = plan | map(attribute='zone_fortigate') | unique | list %}
+{% for zone in zones %}
+    edit "{{ zone }}"
+        set interface {% for vlan in plan if vlan.zone_fortigate == zone %}"VLAN{{ vlan.id }}_{{ vlan.nom }}" {% endfor %}
+
+    next
+{% endfor %}
+end
+
+config system dhcp server
+{% for vlan in plan %}
+    edit {{ loop.index }}
+        set interface "VLAN{{ vlan.id }}_{{ vlan.nom }}"
+        set default-gateway {{ vlan.gateway }}
+        set netmask {{ vlan.masque }}
+        config ip-range
+            edit 1
+                set start-ip {{ vlan.dhcp_debut }}
+                set end-ip {{ vlan.dhcp_fin }}
+            next
+        end
+        set dns-service default
+    next
+{% endfor %}
+end
+
+{% if liaisons.secours != "aucune" %}
+! ------------------------------------------------------------
+! SD-WAN / failover - liaison principale : {{ liaisons.principale }}
+!                     liaison secours   : {{ liaisons.secours }}
+! ------------------------------------------------------------
+config system sdwan
+    set status enable
+    config zone
+        edit "virtual-wan-link"
+        next
+    end
+    config members
+        edit 1
+            set interface "wan1"
+            set comment "Liaison principale - {{ liaisons.principale }}"
+        next
+        edit 2
+            set interface "wan2"
+            set comment "Liaison secours - {{ liaisons.secours }}"
+        next
+    end
+    config health-check
+        edit "internet-check"
+            set server "8.8.8.8" "1.1.1.1"
+            set interval 5
+            set failtime 3
+            set recoverytime 5
+        next
+    end
+end
+{% endif %}

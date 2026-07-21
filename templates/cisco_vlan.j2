@@ -1,0 +1,56 @@
+! ============================================================
+! Configuration VLAN et SVI - {{ base.nom }} ({{ base.code_site }})
+! Généré automatiquement - ne pas éditer directement, éditer le YAML source
+! ============================================================
+!
+hostname SW-{{ base.code_site }}-CORE
+!
+{% for vlan in plan %}
+vlan {{ vlan.id }}
+ name {{ vlan.nom }}
+!
+{% endfor %}
+{% for vlan in plan %}
+interface Vlan{{ vlan.id }}
+ description {{ vlan.nom }} - {{ base.nom }}
+ ip address {{ vlan.gateway }} {{ vlan.masque }}
+ ip helper-address {{ vlan.gateway }}
+ no shutdown
+!
+{% endfor %}
+! ------------------------------------------------------------
+! Ports trunk vers switches d'accès (adapter les interfaces physiques)
+! ------------------------------------------------------------
+interface range GigabitEthernet1/0/1-4
+ switchport mode trunk
+ switchport trunk allowed vlan {{ plan | map(attribute='id') | join(',') }}
+ spanning-tree portfast trunk
+!
+! ------------------------------------------------------------
+! ACL inter-VLAN - politique par défaut : {{ securite.acl_inter_vlan_par_defaut }}
+! A affiner selon les flux métier réellement nécessaires
+! ------------------------------------------------------------
+{% for vlan in plan %}
+ip access-list extended ACL-{{ vlan.nom }}-OUT
+ remark Autoriser DNS et Internet sortant
+ permit udp {{ vlan.reseau }} {{ vlan.wildcard }} any eq 53
+ permit tcp {{ vlan.reseau }} {{ vlan.wildcard }} any eq 443
+ permit tcp {{ vlan.reseau }} {{ vlan.wildcard }} any eq 80
+{% if securite.acl_inter_vlan_par_defaut == "deny" %}
+ remark Bloquer par défaut les autres VLANs internes
+{% for autre in plan if autre.nom != vlan.nom %}
+ deny ip {{ vlan.reseau }} {{ vlan.wildcard }} {{ autre.reseau }} {{ autre.wildcard }}
+{% endfor %}
+{% endif %}
+ permit ip any any
+!
+{% endfor %}
+! ------------------------------------------------------------
+! Application des ACL sur les SVI
+! ------------------------------------------------------------
+{% for vlan in plan %}
+interface Vlan{{ vlan.id }}
+ ip access-group ACL-{{ vlan.nom }}-OUT in
+!
+{% endfor %}
+end

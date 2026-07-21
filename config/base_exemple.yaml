@@ -1,0 +1,38 @@
+# Paramètres d'une base terrain
+# Un fichier YAML = une base. Copier ce fichier pour chaque nouvelle base.
+
+base:
+  nom: "Base_Exemple"
+  code_site: "EXM"                # code court utilisé dans les noms d'objets Cisco/FortiGate
+  reseau_racine: "10.50.0.0/16"    # bloc racine attribué à cette base
+
+utilisateurs:
+  nombre: 20
+
+liaisons:
+  principale: "starlink"          # starlink | vsat | fibre
+  secours: "4g"                   # 4g | vsat | aucune
+  ha_fortigate: false             # true si cluster FortiGate actif/passif
+
+vlans:
+  - nom: "DATA"
+    id: 10
+    utilisateurs_estimes: 20
+    zone_fortigate: "trust"
+  - nom: "VOIX"
+    id: 20
+    utilisateurs_estimes: 10
+    zone_fortigate: "trust"
+  - nom: "GUEST"
+    id: 30
+    utilisateurs_estimes: 15
+    zone_fortigate: "guest"
+  - nom: "IOT"
+    id: 40
+    utilisateurs_estimes: 5
+    zone_fortigate: "restricted"
+
+securite:
+  acl_inter_vlan_par_defaut: "deny"   # deny = interdit sauf règle explicite
+  profil_web_filter: "default"
+  profil_ips: "default"

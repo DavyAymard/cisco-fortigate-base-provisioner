@@ -1,0 +1,67 @@
+config firewall address
+{% for vlan in plan %}
+    edit "NET_{{ vlan.nom }}"
+        set subnet {{ vlan.reseau }} {{ vlan.masque }}
+    next
+{% endfor %}
+end
+
+config firewall policy
+{% set pid = namespace(n=1) %}
+
+{# --- Sortie Internet pour chaque VLAN, filtrée --- #}
+{% for vlan in plan %}
+    edit {{ pid.n }}
+        set name "OUT_{{ vlan.nom }}_TO_INTERNET"
+        set srcintf "VLAN{{ vlan.id }}_{{ vlan.nom }}"
+        set dstintf "wan1" "wan2"
+        set srcaddr "NET_{{ vlan.nom }}"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+        set service "DNS" "HTTPS" "HTTP"
+        set nat enable
+        set utm-status enable
+        set ssl-ssh-profile "certificate-inspection"
+        set av-profile "{{ securite.profil_web_filter }}"
+        set webfilter-profile "{{ securite.profil_web_filter }}"
+        set ips-sensor "{{ securite.profil_ips }}"
+        set logtraffic all
+    next
+    {% set pid.n = pid.n + 1 %}
+{% endfor %}
+
+{% if securite.acl_inter_vlan_par_defaut == "deny" %}
+{# --- Blocage explicite inter-VLAN, sauf DATA <-> VOIX (cas d'usage courant) --- #}
+{% for vlan in plan %}
+{% for autre in plan if autre.nom != vlan.nom %}
+{% if not (vlan.nom in ['DATA', 'VOIX'] and autre.nom in ['DATA', 'VOIX']) %}
+    edit {{ pid.n }}
+        set name "DENY_{{ vlan.nom }}_TO_{{ autre.nom }}"
+        set srcintf "VLAN{{ vlan.id }}_{{ vlan.nom }}"
+        set dstintf "VLAN{{ autre.id }}_{{ autre.nom }}"
+        set srcaddr "NET_{{ vlan.nom }}"
+        set dstaddr "NET_{{ autre.nom }}"
+        set action deny
+        set schedule "always"
+        set service "ALL"
+        set logtraffic all
+    next
+    {% set pid.n = pid.n + 1 %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+    edit {{ pid.n }}
+        set name "ALLOW_DATA_VOIX_INTERCOM"
+        set srcintf "VLAN10_DATA" "VLAN20_VOIX"
+        set dstintf "VLAN10_DATA" "VLAN20_VOIX"
+        set srcaddr "all"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+        set service "ALL"
+        set logtraffic utm
+    next
+{% endif %}
+end

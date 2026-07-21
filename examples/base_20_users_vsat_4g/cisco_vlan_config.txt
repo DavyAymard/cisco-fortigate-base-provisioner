@@ -1,0 +1,115 @@
+! ============================================================
+! Configuration VLAN et SVI - Base_Exemple (EXM)
+! Généré automatiquement - ne pas éditer directement, éditer le YAML source
+! ============================================================
+!
+hostname SW-EXM-CORE
+!
+vlan 10
+ name DATA
+!
+vlan 20
+ name VOIX
+!
+vlan 30
+ name GUEST
+!
+vlan 40
+ name IOT
+!
+interface Vlan10
+ description DATA - Base_Exemple
+ ip address 10.50.0.1 255.255.255.224
+ ip helper-address 10.50.0.1
+ no shutdown
+!
+interface Vlan20
+ description VOIX - Base_Exemple
+ ip address 10.50.1.1 255.255.255.240
+ ip helper-address 10.50.1.1
+ no shutdown
+!
+interface Vlan30
+ description GUEST - Base_Exemple
+ ip address 10.50.2.1 255.255.255.224
+ ip helper-address 10.50.2.1
+ no shutdown
+!
+interface Vlan40
+ description IOT - Base_Exemple
+ ip address 10.50.3.1 255.255.255.240
+ ip helper-address 10.50.3.1
+ no shutdown
+!
+! ------------------------------------------------------------
+! Ports trunk vers switches d'accès (adapter les interfaces physiques)
+! ------------------------------------------------------------
+interface range GigabitEthernet1/0/1-4
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ spanning-tree portfast trunk
+!
+! ------------------------------------------------------------
+! ACL inter-VLAN - politique par défaut : deny
+! A affiner selon les flux métier réellement nécessaires
+! ------------------------------------------------------------
+ip access-list extended ACL-DATA-OUT
+ remark Autoriser DNS et Internet sortant
+ permit udp 10.50.0.0 0.0.0.31 any eq 53
+ permit tcp 10.50.0.0 0.0.0.31 any eq 443
+ permit tcp 10.50.0.0 0.0.0.31 any eq 80
+ remark Bloquer par défaut les autres VLANs internes
+ deny ip 10.50.0.0 0.0.0.31 10.50.1.0 0.0.0.15
+ deny ip 10.50.0.0 0.0.0.31 10.50.2.0 0.0.0.31
+ deny ip 10.50.0.0 0.0.0.31 10.50.3.0 0.0.0.15
+ permit ip any any
+!
+ip access-list extended ACL-VOIX-OUT
+ remark Autoriser DNS et Internet sortant
+ permit udp 10.50.1.0 0.0.0.15 any eq 53
+ permit tcp 10.50.1.0 0.0.0.15 any eq 443
+ permit tcp 10.50.1.0 0.0.0.15 any eq 80
+ remark Bloquer par défaut les autres VLANs internes
+ deny ip 10.50.1.0 0.0.0.15 10.50.0.0 0.0.0.31
+ deny ip 10.50.1.0 0.0.0.15 10.50.2.0 0.0.0.31
+ deny ip 10.50.1.0 0.0.0.15 10.50.3.0 0.0.0.15
+ permit ip any any
+!
+ip access-list extended ACL-GUEST-OUT
+ remark Autoriser DNS et Internet sortant
+ permit udp 10.50.2.0 0.0.0.31 any eq 53
+ permit tcp 10.50.2.0 0.0.0.31 any eq 443
+ permit tcp 10.50.2.0 0.0.0.31 any eq 80
+ remark Bloquer par défaut les autres VLANs internes
+ deny ip 10.50.2.0 0.0.0.31 10.50.0.0 0.0.0.31
+ deny ip 10.50.2.0 0.0.0.31 10.50.1.0 0.0.0.15
+ deny ip 10.50.2.0 0.0.0.31 10.50.3.0 0.0.0.15
+ permit ip any any
+!
+ip access-list extended ACL-IOT-OUT
+ remark Autoriser DNS et Internet sortant
+ permit udp 10.50.3.0 0.0.0.15 any eq 53
+ permit tcp 10.50.3.0 0.0.0.15 any eq 443
+ permit tcp 10.50.3.0 0.0.0.15 any eq 80
+ remark Bloquer par défaut les autres VLANs internes
+ deny ip 10.50.3.0 0.0.0.15 10.50.0.0 0.0.0.31
+ deny ip 10.50.3.0 0.0.0.15 10.50.1.0 0.0.0.15
+ deny ip 10.50.3.0 0.0.0.15 10.50.2.0 0.0.0.31
+ permit ip any any
+!
+! ------------------------------------------------------------
+! Application des ACL sur les SVI
+! ------------------------------------------------------------
+interface Vlan10
+ ip access-group ACL-DATA-OUT in
+!
+interface Vlan20
+ ip access-group ACL-VOIX-OUT in
+!
+interface Vlan30
+ ip access-group ACL-GUEST-OUT in
+!
+interface Vlan40
+ ip access-group ACL-IOT-OUT in
+!
+end
