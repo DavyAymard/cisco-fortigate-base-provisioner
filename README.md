@@ -38,7 +38,7 @@ base_exemple.yaml  →  generator/main.py  →  configs Cisco IOS
 ## Installation
 
 ```bash
-git clone https://github.com/<votre-compte>/cisco-fortigate-base-provisioner.git
+git clone https://github.com/DavyAymard/cisco-fortigate-base-provisioner.git
 cd cisco-fortigate-base-provisioner
 pip install -r requirements.txt
 ```
@@ -81,5 +81,5 @@ principale Starlink avec secours 4G — sans avoir besoin d'exécuter le script.
 
 ## Auteur
 
-Davy Aymard LITSE — IT Infrastructure & Cybersécurité
+Davy Aymard LITSE - IT Infrastructure & Cybersécurité
 [linkedin.com/in/davylitse](https://linkedin.com/in/davylitse)
